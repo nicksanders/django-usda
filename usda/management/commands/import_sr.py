@@ -22,7 +22,7 @@ NUTRIENT_DATA_STEP = 1000
 
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
-        optparse.make_option('-f', '--filename', action='store', dest='filename', help='The compressed SR22 filename', default='sr22.zip'),
+        optparse.make_option('-f', '--filename', action='store', dest='filename', help='The compressed SR25 filename', default='sr25.zip'),
         optparse.make_option('--database', action='store', dest='database', help='Specify database to load data into. Defaults to the "default" database.', default=DEFAULT_DB_ALIAS),
         optparse.make_option('--all', action='store_true', dest='all', help='Create/Update all data.'),
         optparse.make_option('--food', action='store_true', dest='food', help='Create/Update foods.'),
