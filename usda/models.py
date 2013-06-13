@@ -132,7 +132,7 @@ class Weight(models.Model):
     food = models.ForeignKey('Food', verbose_name=_('Food'))
     sequence = models.IntegerField(_('Sequence'), help_text=_('Sequence number.'))
     amount = models.FloatField(_('Amount'), help_text=_('Unit modifier (for example, 1 in "1 cup").'))
-    description = models.CharField(_('Description'), max_length=80, help_text=_('Description (for example, cup, diced, and 1-inch pieces).'))
+    description = models.CharField(_('Description'), max_length=84, help_text=_('Description (for example, cup, diced, and 1-inch pieces).'))
     gram_weight = models.FloatField(_('Gram Weight'), help_text=_('Gram weight.'))
     number_of_data_points = models.FloatField(_('Number of Data Points'), blank=True, null=True, help_text=_('Number of data points.'))
     standard_deviation = models.FloatField(_('Standard Deviation'), blank=True, null=True, help_text=_('Standard Deviation'))
