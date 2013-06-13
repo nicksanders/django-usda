@@ -4,6 +4,10 @@ from usda.models import Food, FoodGroup, Weight, Nutrient, Footnote, \
                         DataSource, DataDerivation, Source, NutrientData
 
 
+class FoodAdmin(admin.ModelAdmin):
+    search_fields = ('long_description', )
+
+
 class WeightAdmin(admin.ModelAdmin):
     raw_id_fields = ('food', )
 
@@ -16,7 +20,7 @@ class NutrientDataAdmin(admin.ModelAdmin):
     raw_id_fields = ('food', 'nutrient', )
 
 
-admin.site.register(Food)
+admin.site.register(Food, FoodAdmin)
 admin.site.register(FoodGroup)
 admin.site.register(Weight, WeightAdmin)
 admin.site.register(Nutrient)
