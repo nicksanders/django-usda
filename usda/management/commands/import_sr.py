@@ -538,7 +538,7 @@ def create_update_nutrient_data(data):
             if row.get('up_eb'):
                 nutrient_data.upper_error_bound = float(row['up_eb'])
             nutrient_data.statistical_comments = row.get('stat_cmt')
-            nutrient_data.confidence_code = row.get('cc')
+            nutrient_data.confidence_code = row.get('cc')[:1]
             nutrient_data.save()
         
             if row.get('src_cd'):
