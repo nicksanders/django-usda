@@ -3,6 +3,8 @@ from .models import Nutrient, NutrientData
 
 ENERGY = 208
 TOTAL_FAT = 204
+SATURATED_FAT = 606
+TRANS_FAT = 605
 
 
 class NutritionFacts(object):
@@ -11,7 +13,7 @@ class NutritionFacts(object):
         self.food = food
         self._calories = calories
         self._grams = grams
-        energy_nutrient = Nutrient.objects.get(number=208)
+        energy_nutrient = Nutrient.objects.get(number=ENERGY)
         self.energy_100g = NutrientData.objects.get(food=food, nutrient=energy_nutrient).nutrient_value
         self.data_cache = {}
 
@@ -36,6 +38,14 @@ class NutritionFacts(object):
     @property
     def totalfat_g(self):
         return self._nutrient_amount(TOTAL_FAT)
+
+    @property
+    def saturatedfat_g(self):
+        return self._nutrient_amount(SATURATED_FAT)
+
+    @property
+    def transfat_g(self):
+        return self._nutrient_amount(TRANS_FAT)
 
     def _nutrient_amount(self, number):
         if number not in self.data_cache:
