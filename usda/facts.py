@@ -5,6 +5,12 @@ ENERGY = 208
 TOTAL_FAT = 204
 SATURATED_FAT = 606
 TRANS_FAT = 605
+CHOLESTEROL = 601
+SODIUM = 307
+CARBOHYDRATE = 205
+DIETARY_FIBER = 291
+SUGARS = 269
+PROTEIN = 203
 
 
 class NutritionFacts(object):
@@ -36,16 +42,40 @@ class NutritionFacts(object):
         self._grams = val
 
     @property
-    def totalfat_g(self):
+    def total_fat_g(self):
         return self._nutrient_amount(TOTAL_FAT)
 
     @property
-    def saturatedfat_g(self):
+    def saturated_fat_g(self):
         return self._nutrient_amount(SATURATED_FAT)
 
     @property
-    def transfat_g(self):
+    def trans_fat_g(self):
         return self._nutrient_amount(TRANS_FAT)
+
+    @property
+    def cholesterol_mg(self):
+        return self._nutrient_amount(CHOLESTEROL)
+
+    @property
+    def sodium_mg(self):
+        return self._nutrient_amount(SODIUM)
+
+    @property
+    def carbohydrate_g(self):
+        return self._nutrient_amount(CARBOHYDRATE)
+
+    @property
+    def dietary_fiber_g(self):
+        return self._nutrient_amount(DIETARY_FIBER)
+
+    @property
+    def sugars_g(self):
+        return self._nutrient_amount(SUGARS)
+
+    @property
+    def protein_g(self):
+        return self._nutrient_amount(PROTEIN)
 
     def _nutrient_amount(self, number):
         if number not in self.data_cache:
