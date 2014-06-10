@@ -1,17 +1,14 @@
 import csv
-import decimal
 import optparse
 import logging
 import os
-import sys
 import zipfile
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction, DEFAULT_DB_ALIAS, reset_queries
 
-from usda.models import Food, FoodGroup, Weight, Nutrient, Footnote, \
-                        DataSource, DataDerivation, NutrientData, Source,\
-                        FOOTNOTE_DESC, FOOTNOTE_MEAS, FOOTNOTE_NUTR
+from usda.models import Food, FoodGroup, Weight, Nutrient, Footnote, DataSource, \
+    DataDerivation, NutrientData, Source, FOOTNOTE_DESC, FOOTNOTE_MEAS, FOOTNOTE_NUTR
 from usda.management.commands.unicode_dict_reader import UnicodeDictReader
 
 
@@ -22,7 +19,7 @@ NUTRIENT_DATA_STEP = 1000
 
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
-        optparse.make_option('-f', '--filename', action='store', dest='filename', help='The compressed SR25 filename', default='sr25.zip'),
+        optparse.make_option('-f', '--filename', action='store', dest='filename', help='The compressed SR26 filename', default='sr26.zip'),
         optparse.make_option('--database', action='store', dest='database', help='Specify database to load data into. Defaults to the "default" database.', default=DEFAULT_DB_ALIAS),
         optparse.make_option('--all', action='store_true', dest='all', help='Create/Update all data.'),
         optparse.make_option('--food', action='store_true', dest='food', help='Create/Update foods.'),
@@ -34,10 +31,10 @@ class Command(BaseCommand):
         optparse.make_option('--derivation', action='store_true', dest='derivation', help='Create/Update data derivations.'),
         optparse.make_option('--source', action='store_true', dest='source', help='Create/Update sources.'),
         optparse.make_option('--data', action='store_true', dest='data', help='Create/Update nutrient data.'),
-        optparse.make_option('--encoding', action='store', dest='encoding', help='Specify the src file encoding. Defaults to cp1252.', default='cp1252')
+        optparse.make_option('--encoding', action='store', dest='encoding', help='Specify the src file encoding. Defaults to cp1252.', default='cp1252'),
     )
-    help = 'Updates/Created all SR22 data.'
-    
+    help = 'Updates/Created all SR26 data.'
+
     def handle(self, **options):
         FOOD_DES = 'FOOD_DES.txt'
         FD_GROUP = 'FD_GROUP.txt'
@@ -49,7 +46,7 @@ class Command(BaseCommand):
         FOOTNOTE = 'FOOTNOTE.txt'
         DATSRCLN = 'DATSRCLN.txt'
         DATA_SRC = 'DATA_SRC.txt'
-        
+
         required_files = [
             FOOD_DES,
             FD_GROUP,
@@ -62,7 +59,7 @@ class Command(BaseCommand):
             DATSRCLN,
             DATA_SRC,
         ]
-        
+
         verbosity = int(options.get('verbosity', 1))
         using = options.get('database', DEFAULT_DB_ALIAS)
         parse_all = options.get('all')
@@ -76,35 +73,35 @@ class Command(BaseCommand):
         parse_source = options.get('source')
         parse_data = options.get('data')
         encoding = options.get('encoding')
-        
+
         if not os.path.exists(options['filename']):
             CommandError('%s does not exist' % options['filename'])
-        
+
         if verbosity == 1:
             logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
         elif verbosity > 1:
             logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
-        
+
         logging.info('Verifying %s...' % options['filename'])
-        
+
         if not parse_all and not True in [
             parse_group, parse_food, parse_weight, parse_nutrient, parse_footnote,
             parse_datasource, parse_derivation, parse_source, parse_data
         ]:
             logging.info('Parsing all available data from %s' % options['filename'])
             parse_all = True
-        
+
         zip_file = zipfile.ZipFile(options['filename'], mode='r')
-        
+
         # Verify integrity of zip file by checking that all required files are present
         missing_files = [required_file for required_file in required_files if not required_file in zip_file.namelist()]
         if missing_files:
-            logging.error('%s does not appear to be a valid SR22 database.  Unable to extract %s' % (filename, ', '.join(missing_files)))
-        
+            logging.error('%s does not appear to be a valid SR26 database.  Unable to extract %s' % (options['filename'], ', '.join(missing_files)))
+
         transaction.commit_unless_managed(using=using)
         transaction.enter_transaction_management(using=using)
         transaction.managed(True, using=using)
-        
+
         if parse_all or parse_group:
             logging.info('Reading %s...' % FD_GROUP)
             create_update_food_groups(''.join([byte for byte in zip_file.read(FD_GROUP)]).splitlines())
@@ -113,7 +110,7 @@ class Command(BaseCommand):
             create_update_foods(''.join([byte for byte in zip_file.read(FOOD_DES)]).splitlines(), encoding)
         if parse_all or parse_weight:
             logging.info('Reading %s...' % WEIGHT)
-            create_update_weights(''.join([byte for byte in zip_file.read(WEIGHT)]).splitlines())
+            create_update_weights(''.join([byte for byte in zip_file.read(WEIGHT)]).splitlines(), encoding)
         if parse_all or parse_nutrient:
             logging.info('Reading %s...' % NUTR_DEF)
             create_update_nutrients(''.join([byte for byte in zip_file.read(NUTR_DEF)]).splitlines(), encoding)
@@ -132,25 +129,25 @@ class Command(BaseCommand):
         if parse_all or parse_data:
             logging.info('Reading %s...' % NUT_DATA)
             create_update_nutrient_data(''.join([byte for byte in zip_file.read(NUT_DATA)]).splitlines())
-        
+
         transaction.commit(using=using)
         transaction.leave_transaction_management(using=using)
-        
+
         zip_file.close()
 
 
 def create_update_food_groups(data):
     total_created = 0
     total_updated = 0
-    
+
     logging.info('Processing %d food groups' % len(data))
-    
+
     for row in csv.DictReader(
         data, fieldnames=('fdgrp_cd', 'fdgrp_desc'),
         delimiter='^', quotechar='~'
     ):
         created = False
-        
+
         try:
             food_group = FoodGroup.objects.get(code=int(row['fdgrp_cd']))
             total_updated += 1
@@ -158,15 +155,15 @@ def create_update_food_groups(data):
             food_group = FoodGroup(code=int(row['fdgrp_cd']))
             total_created += 1
             created = True
-        
+
         food_group.description = row['fdgrp_desc']
         food_group.save()
-        
+
         if created:
             logging.debug('Created %s' % food_group)
         else:
             logging.debug('Updated %s' % food_group)
-    
+
     logging.info('Created %d new food groups' % total_created)
     logging.info('Updated %d food groups' % total_updated)
 
@@ -174,9 +171,9 @@ def create_update_food_groups(data):
 def create_update_foods(data, encoding):
     total_created = 0
     total_updated = 0
-    
+
     logging.info('Processing %d foods' % len(data))
-    
+
     for row in UnicodeDictReader(
         data,
         fieldnames=(
@@ -188,7 +185,7 @@ def create_update_foods(data, encoding):
         encoding=encoding
     ):
         created = False
-        
+
         try:
             food = Food.objects.get(ndb_number=int(row['ndb_no']))
             total_updated += 1
@@ -196,7 +193,7 @@ def create_update_foods(data, encoding):
             food = Food(ndb_number=int(row['ndb_no']))
             total_created += 1
             created = True
-        
+
         food.food_group = FoodGroup.objects.get(code=int(row['fdgrp_cd']))
         food.long_description = row.get('long_desc')
         food.short_description = row.get('short_desc')
@@ -217,32 +214,34 @@ def create_update_foods(data, encoding):
             food.fat_factor = float(row['fat_factor'])
         if row.get('cho_factor'):
             food.cho_factor = float(row['cho_factor'])
-        
+
         food.save()
-        
+
         if created:
             logging.debug('Created %s' % food)
         else:
             logging.debug('Updated %s' % food)
-    
+
     logging.info('Created %d new foods' % total_created)
     logging.info('Updated %d foods' % total_updated)
 
 
-def create_update_weights(data):
+def create_update_weights(data, encoding):
     total_created = 0
     total_updated = 0
-    
+
     logging.info('Processing %d weights' % len(data))
-    
-    for row in csv.DictReader(
-        data, fieldnames=(
+
+    for row in UnicodeDictReader(
+        data,
+        fieldnames=(
             'ndb_no', 'seq', 'amount', 'msre_desc', 'gm_wgt', 'num_data_pts', 'std_dev'
         ),
-        delimiter='^', quotechar='~'
+        delimiter='^', quotechar='~',
+        encoding=encoding
     ):
         created = False
-        
+
         try:
             weight = Weight.objects.get(
                 food=Food.objects.get(ndb_number=int(row['ndb_no'])),
@@ -256,7 +255,7 @@ def create_update_weights(data):
             )
             total_created += 1
             created = True
-        
+
         weight.amount = float(row.get('amount'))
         weight.description = row.get('msre_desc')
         weight.gram_weight = float(row.get('gm_wgt'))
@@ -265,12 +264,12 @@ def create_update_weights(data):
         if row.get('std_dev'):
             weight.standard_deviation = float(row['std_dev'])
         weight.save()
-        
+
         if created:
             logging.debug('Created %s' % weight)
         else:
             logging.debug('Updated %s' % weight)
-    
+
     logging.info('Created %d new weights' % total_created)
     logging.info('Updated %d weights' % total_updated)
 
@@ -278,9 +277,9 @@ def create_update_weights(data):
 def create_update_nutrients(data, encoding):
     total_created = 0
     total_updated = 0
-    
+
     logging.info('Processing %d nutrients' % len(data))
-    
+
     for row in UnicodeDictReader(
         data, fieldnames=(
             'nutr_no', 'units', 'tagname', 'nutrdesc', 'num_dec', 'sr_order'
@@ -289,7 +288,7 @@ def create_update_nutrients(data, encoding):
         encoding=encoding
     ):
         created = False
-        
+
         try:
             nutrient = Nutrient.objects.get(number=int(row['nutr_no']))
             total_updated += 1
@@ -297,19 +296,19 @@ def create_update_nutrients(data, encoding):
             nutrient = Nutrient(number=int(row['nutr_no']))
             total_created += 1
             created = True
-        
+
         nutrient.units = row['units']
         nutrient.tagname = row.get('tagname')
         nutrient.description = row['nutrdesc']
         nutrient.decimals = int(row['num_dec'])
         nutrient.order = int(row['sr_order'])
         nutrient.save()
-        
+
         if created:
             logging.debug('Created %s' % nutrient)
         else:
             logging.debug('Updated %s' % nutrient)
-    
+
     logging.info('Created %d new nutrients' % total_created)
     logging.info('Updated %d nutrients' % total_updated)
 
@@ -317,9 +316,9 @@ def create_update_nutrients(data, encoding):
 def create_update_footnotes(data):
     total_created = 0
     total_updated = 0
-    
+
     logging.info('Processing %d footnotes' % len(data))
-    
+
     for row in csv.DictReader(
         data, fieldnames=(
             'ndb_no', 'footnt_no', 'footnt_typ', 'nutr_no', 'footnt_txt'
@@ -327,7 +326,7 @@ def create_update_footnotes(data):
         delimiter='^', quotechar='~'
     ):
         created = False
-        
+
         # SR22 definition indicates that `footnt_no` and `footnt_typ` are required,
         # but on occasion, either on is blank.  To compensate for this, we assume
         # a blank `footnt_no` is '1' and a blank`footnt_typ` is 'N'.
@@ -335,12 +334,12 @@ def create_update_footnotes(data):
             row['footnt_no'] = 1
         if row['footnt_typ'] not in (FOOTNOTE_DESC, FOOTNOTE_MEAS, FOOTNOTE_NUTR):
             row['footnt_typ'] = FOOTNOTE_NUTR
-        
+
         if row.get('nutr_no'):
             nutrient = Nutrient.objects.get(number=int(row['nutr_no']))
         else:
             nutrient = None
-        
+
         try:
             footnote = Footnote.objects.get(
                 food=Food.objects.get(ndb_number=int(row['ndb_no'])),
@@ -356,16 +355,16 @@ def create_update_footnotes(data):
             )
             total_created += 1
             created = True
-        
+
         footnote.type = row['footnt_typ']
         footnote.text = row['footnt_txt']
         footnote.save()
-        
+
         if created:
             logging.debug('Created %s' % footnote)
         else:
             logging.debug('Updated %s' % footnote)
-    
+
     logging.info('Created %d new footnotes' % total_created)
     logging.info('Updated %d footnotes' % total_updated)
 
@@ -373,9 +372,9 @@ def create_update_footnotes(data):
 def create_update_data_sources(data):
     total_created = 0
     total_updated = 0
-    
+
     logging.info('Processing %d data sources' % len(data))
-    
+
     for row in csv.DictReader(
         data, fieldnames=(
             'datasrc_id', 'authors', 'title', 'year', 'journal',
@@ -384,7 +383,7 @@ def create_update_data_sources(data):
         delimiter='^', quotechar='~'
     ):
         created = False
-        
+
         try:
             data_source = DataSource.objects.get(id=row['datasrc_id'])
             total_updated += 1
@@ -392,7 +391,7 @@ def create_update_data_sources(data):
             data_source = DataSource(id=row['datasrc_id'])
             total_created += 1
             created = True
-        
+
         data_source.description = row.get('authors')
         data_source.title = row.get('title')
         if row.get('year'):
@@ -405,12 +404,12 @@ def create_update_data_sources(data):
         if row.get('end_page'):
             data_source.end_page = row.get('end_page')
         data_source.save()
-        
+
         if created:
             logging.debug('Created %s' % data_source)
         else:
             logging.debug('Updated %s' % data_source)
-    
+
     logging.info('Created %d new data sources' % total_created)
     logging.info('Updated %d data sources' % total_updated)
 
@@ -418,15 +417,15 @@ def create_update_data_sources(data):
 def create_update_derivations(data):
     total_created = 0
     total_updated = 0
-    
+
     logging.info('Processing %d data derivations' % len(data))
-    
+
     for row in csv.DictReader(
         data, fieldnames=('deriv_cd', 'deriv_desc'),
         delimiter='^', quotechar='~'
     ):
         created = False
-        
+
         try:
             derivation = DataDerivation.objects.get(code=row['deriv_cd'])
             total_updated += 1
@@ -434,18 +433,18 @@ def create_update_derivations(data):
             derivation = DataDerivation(code=row['deriv_cd'])
             total_created += 1
             created = True
-        
+
         # SR22 defines `deriv_desc` as being a maximum length of 120 characters,
         # however, there is at least one instance where `deriv_desc` is greater
         # than this max.  To deal with this, truncate to 120 characters.
         derivation.description = row['deriv_desc'][:120]
         derivation.save()
-        
+
         if created:
             logging.debug('Created %s' % derivation)
         else:
             logging.debug('Updated %s' % derivation)
-    
+
     logging.info('Created %d new derivations' % total_created)
     logging.info('Updated %d derivations' % total_updated)
 
@@ -453,15 +452,15 @@ def create_update_derivations(data):
 def create_update_sources(data):
     total_created = 0
     total_updated = 0
-    
+
     logging.info('Processing %d sources' % len(data))
-    
+
     for row in csv.DictReader(
         data, fieldnames=('src_cd', 'srccd_desc'),
         delimiter='^', quotechar='~'
     ):
         created = False
-        
+
         try:
             source = Source.objects.get(code=int(row['src_cd']))
             total_updated += 1
@@ -469,15 +468,15 @@ def create_update_sources(data):
             source = Source(code=int(row['src_cd']))
             total_created += 1
             created = True
-        
+
         source.description = row['srccd_desc']
         source.save()
-        
+
         if created:
             logging.debug('Created %s' % source)
         else:
             logging.debug('Updated %s' % source)
-    
+
     logging.info('Created %d new sources' % total_created)
     logging.info('Updated %d sources' % total_updated)
 
@@ -485,12 +484,12 @@ def create_update_sources(data):
 def create_update_nutrient_data(data):
     total_created = 0
     total_updated = 0
-    
+
     logging.info('Processing %d nutrient data items' % len(data))
 
     for start in range(0, len(data), NUTRIENT_DATA_STEP):
         end = min(start + NUTRIENT_DATA_STEP, len(data))
-        
+
         for row in csv.DictReader(
             data[start:end], fieldnames=(
                 'ndb_no', 'nutr_no', 'nutr_val', 'num_data_pts', 'std_error',
@@ -500,27 +499,34 @@ def create_update_nutrient_data(data):
             delimiter='^', quotechar='~'
         ):
             created = False
-        
+
+            try:
+                nutrient = Nutrient.objects.get(number=int(row['nutr_no']))
+            except Nutrient.DoesNotExist:
+                continue
+
             try:
                 nutrient_data = NutrientData.objects.get(
                     food=Food.objects.get(ndb_number=int(row['ndb_no'])),
-                    nutrient=Nutrient.objects.get(number=int(row['nutr_no']))
+                    nutrient=nutrient
                 )
                 total_updated += 1
             except NutrientData.DoesNotExist:
                 nutrient_data = NutrientData(
                     food=Food.objects.get(ndb_number=int(row['ndb_no'])),
-                    nutrient=Nutrient.objects.get(number=int(row['nutr_no']))
+                    nutrient=nutrient
                 )
                 total_created += 1
                 created = True
-        
+
             nutrient_data.nutrient_value = float(row['nutr_val'])
             nutrient_data.data_points = int(row['num_data_pts'])
             if row.get('std_error'):
                 nutrient_data.standard_error = float(row['std_error'])
             if row.get('deriv_cd'):
-                nutrient_data.data_derivation = DataDerivation.objects.get(code=row['deriv_cd'])
+                data_derivation = DataDerivation.objects.filter(code=row['deriv_cd']).first()
+                if data_derivation:
+                    nutrient_data.data_derivation = DataDerivation.objects.get(code=row['deriv_cd'])
             if row.get('ref_ndb_no'):
                 nutrient_data.reference_nbd_number = int(row['ref_ndb_no'])
             if row.get('add_nutr_mark'):
@@ -540,17 +546,19 @@ def create_update_nutrient_data(data):
             nutrient_data.statistical_comments = row.get('stat_cmt')
             nutrient_data.confidence_code = row.get('cc')[:1]
             nutrient_data.save()
-        
+
             if row.get('src_cd'):
-                nutrient_data.source.add(Source.objects.get(code=row['src_cd']))
-                nutrient_data.save()
-        
+                source = Source.objects.filter(code=row['src_cd']).first()
+                if source:
+                    nutrient_data.source.add(source)
+                    nutrient_data.save()
+
             if created:
                 logging.debug('Created %s' % nutrient_data)
             else:
                 logging.debug('Updated %s' % nutrient_data)
-                
-        reset_queries() # Reset DB connection to avoid using all available RAM
-    
+
+        reset_queries()  # Reset DB connection to avoid using all available RAM
+
     logging.info('Created %d new nutrient data' % total_created)
     logging.info('Updated %d nutrient data' % total_updated)

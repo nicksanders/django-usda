@@ -3,13 +3,13 @@ django-usda
 
 Overview
 --------
-django-usda imports and maps the USDA National Nutrient Database for Standard 
-Reference (SR22) to Django models.
+django-usda imports and maps the USDA National Nutrient Database for Standard
+Reference (SR26) to Django models.
 
 Requirements
 ------------
 * Python 2.5.x
-* Django 1.2.x (import_sr22 will not work with early versions)
+* Django 1.2.x (import_sr will not work with early versions)
 
 Installation
 ------------
@@ -19,15 +19,15 @@ Installation
 
 Data Import
 -----------
-To import the latest SR22 data.  Simply use the `import_sr22` management command
+To import the latest SR26 data.  Simply use the `import_sr` management command
 as follows:
 
-    ./manage.py import_sr22
+    ./manage.py import_sr
 
-The above assumes that the `sr22.zip` file is in the current folder.  To specify
+The above assumes that the `sr26.zip` file is in the current folder.  To specify
 an alternative location specify `-f <filename>`.
 
-The `import_sr22` command takes several options:
+The `import_sr` command takes several options:
 
 * --database <dbname> -- Specify an alternative database to populate.
 * --food -- Create/update all foods.
@@ -49,8 +49,8 @@ database consistency is maintained.
 
 Notes
 -----
-The USDA National Nutrient Database for Standard Reference (SR22) can be found
-here: `http://www.ars.usda.gov/Services/docs.htm?docid=18879 <http://www.ars.usda.gov/Services/docs.htm?docid=18879>`_.
+The USDA National Nutrient Database for Standard Reference (SR26) can be found
+here: `http://www.ars.usda.gov/Services/docs.htm?docid=23634 <http://www.ars.usda.gov/Services/docs.htm?docid=23634>`_.
 
 License
 -------

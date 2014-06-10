@@ -1,4 +1,5 @@
-import csv, codecs
+import csv
+import codecs
 
 """
 Adapted from the csv examples:
@@ -6,7 +7,8 @@ Adapted from the csv examples:
 http://docs.python.org/2/library/csv.html#csv-examples
 """
 
-class UnicodeDictReader:
+
+class UnicodeDictReader(object):
     """
     A UnicodeDictReader which will iterate over lines in the CSV file "f",
     which is encoded in the given encoding, decoding each field entry to
